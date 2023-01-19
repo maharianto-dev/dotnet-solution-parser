@@ -1,6 +1,11 @@
-use std::{error::Error, io::stdin, fs::read_to_string};
+// This crate is a library
+#![crate_type = "lib"]
+// The library is named "dotnet_solution_parser"
+#![crate_name = "dotnet_solution_parser"]
 
-use crate::structs::parsed_solution_struct::ParsedSolutionStruct;
+use std::{error::Error, fs::read_to_string, io::stdin};
+
+use crate::structs::parsed_solution_struct::{ParsedSolutionDataStruct, ParsedSolutionStruct};
 mod structs;
 
 // fn main() -> Result<(), Box<dyn Error>> {
@@ -14,7 +19,7 @@ mod structs;
 //     Ok(())
 // }
 
-pub fn parse_solution(path: &str) -> Result<(), Box<dyn Error>> {
+pub fn parse_solution(path: &str) -> Result<ParsedSolutionDataStruct, Box<dyn Error>> {
     let mut project_list = Vec::new();
     println!("Reading solution file in {}", path);
     let solution_content = read_to_string(path)?;
@@ -26,11 +31,15 @@ pub fn parse_solution(path: &str) -> Result<(), Box<dyn Error>> {
             let projects = content_line.split(" = ").collect::<Vec<&str>>();
             // check if project is a folder solution if yes the skip
             let mut project_type_id = projects[0].to_string();
-            project_type_id = project_type_id.trim_start_matches("Project(\"{").to_string();
+            project_type_id = project_type_id
+                .trim_start_matches("Project(\"{")
+                .to_string();
             project_type_id = project_type_id.trim_end_matches("}\")").to_string();
             // only register if it is not type of solution folder
             if project_type_id != "2150E333-8FDC-42A3-9474-1A3956D46DE8" {
-                project_list.push(ParsedSolutionStruct::init_from_sln_project_line_str(&(projects[1].to_string())));
+                project_list.push(ParsedSolutionStruct::init_from_sln_project_line_str(
+                    &(projects[1].to_string()),
+                ));
             }
         }
     }
@@ -41,5 +50,8 @@ pub fn parse_solution(path: &str) -> Result<(), Box<dyn Error>> {
         println!("{:?}", proj);
     }
     println!("Found {} projects in solution", project_count);
-    Ok(())
+    Ok(ParsedSolutionDataStruct::init(
+        project_list,
+        project_count.to_owned(),
+    ))
 }
